@@ -1,0 +1,35 @@
+import os
+import datetime
+
+kv_io='kvio'
+global_include='./include'
+kv_dd_path='../driver'
+spdk_path='../vend/spdk'
+libdd_path = ['%s/core' %(kv_dd_path)]
+lib_path = [libdd_path, '#', '#/deps/check-0.9.8/src/.libs', '/usr/lib', '/usr/local/lib', '#libs']
+
+def getNow():
+        now = datetime.datetime.now()
+        return "%04d%02d%02d" % (now.year, now.month, now.day)
+
+VariantDir("../build/sdk", "src", duplicate=False)
+
+# assume check was installed into /usr/local/
+env_with_err = Environment(
+	ENV = os.environ,
+        LIBS=['m'],
+	CPPPATH = ['#/src', '#/src/slab', '#/deps/check-0.9.8/src', '/usr/local/include', '#libs', '../common'])
+
+if "CC" in os.environ:
+	env_with_err["CC"] = os.environ["CC"]
+if "CCFLAGS" not in os.environ:
+	env_with_err["CCFLAGS"] = "-g -fPIC -std=c99 -D_GNU_SOURCE -O2 -I./src -I%s -I%s/include -I%s/include " % (global_include, kv_dd_path, spdk_path)
+
+#if "LDFLAGS" not in os.environ:
+if "SHLINKFLAGS" not in os.environ:
+	env_with_err['SHLINKFLAGS'] = '-shared'
+print("CCCOM is:", env_with_err.subst('$CCCOM'))
+
+
+static_object = env_with_err.StaticLibrary(kv_io, ['src/kvradix.c', 'src/kvsdk.c', 'src/kvinit.c', 'src/kvio.c', 'src/kvcache.c', 'src/kvslab.c', 'src/kvlog.c', 'src/slab/kvslab_core.c', '../common/kvutil.c', '../common/EagleHashIP.c', '../common/latency_stat.c', 'src/kvconfig_nxx.c'],
+            LIBPATH = lib_path)
